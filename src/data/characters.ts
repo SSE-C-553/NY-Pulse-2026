@@ -21,6 +21,7 @@ import c1_re from "../assets/character1/right_eye.png";
 import c1_le from "../assets/character1/left_eye.png";
 import c1_nose from "../assets/character1/nose.png";
 import c1_mouth from "../assets/character1/mouth.png";
+import c1_back_hair from "../assets/character1/back_hair.png";
 
 import c2_preview from "../assets/character2/preview.png";
 import c2_true from "../assets/character2/true.png";
@@ -40,6 +41,7 @@ export const characters: Character[] = [
     previewUrl: c1_preview,
     trueUrl: c1_true,
     parts: [
+      { fileName: "back_hair.png", url: c1_back_hair },
       { fileName: "face.png", url: c1_face },
       { fileName: "right_eyebrow.png", url: c1_reb },
       { fileName: "left_eyebrow.png", url: c1_leb },

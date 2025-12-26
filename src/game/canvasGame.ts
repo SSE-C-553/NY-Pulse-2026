@@ -1,4 +1,3 @@
-// src/game/canvasGame.ts (スマホ・ブラウザ対応版)
 import type { Character, Position01 } from "../data/characters";
 
 type Timing = {
@@ -47,8 +46,12 @@ export class FukuwaraiGame {
 
   private currentIndex = 0;
 
-  private mouseX = 0;
-  private mouseY = 0;
+  // ドラッグ用の状態
+  private isDragging = false;
+  private dragStartX = 0;
+  private dragStartY = 0;
+  private currentPartX = 0; // 現在ドラッグ中のパーツ位置
+  private currentPartY = 0;
 
   private imageScale = 1;
 
@@ -58,7 +61,6 @@ export class FukuwaraiGame {
 
   private loopStarted = false;
   
-  // タッチ操作用フラグ
   private isTouchDevice = false;
 
   constructor(opts: {
@@ -93,38 +95,133 @@ export class FukuwaraiGame {
       ...opts.timing
     };
 
-    // タッチデバイスの検出
     this.isTouchDevice = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
 
     this.bindEvents();
   }
 
   private bindEvents() {
-    // タッチデバイスとマウスデバイスで分岐
     if (this.isTouchDevice) {
-      // タッチデバイス用
-      this.canvas.addEventListener("touchmove", (e) => {
-        this.updatePointerFromEvent(e);
-      }, { passive: true });
-
+      // タッチ開始
       this.canvas.addEventListener("touchstart", (e) => {
         e.preventDefault();
-        this.updatePointerFromEvent(e);
-        this.placePart();
+        this.handleDragStart(e);
+      }, { passive: false });
+
+      // タッチ移動
+      this.canvas.addEventListener("touchmove", (e) => {
+        e.preventDefault();
+        this.handleDragMove(e);
+      }, { passive: false });
+
+      // タッチ終了
+      this.canvas.addEventListener("touchend", (e) => {
+        e.preventDefault();
+        this.handleDragEnd(e);
+      }, { passive: false });
+
+      this.canvas.addEventListener("touchcancel", (e) => {
+        e.preventDefault();
+        this.handleDragEnd(e);
       }, { passive: false });
     } else {
-      // マウスデバイス用
+      // マウス開始
+      this.canvas.addEventListener("mousedown", (e) => {
+        e.preventDefault();
+        this.handleDragStart(e);
+      });
+
+      // マウス移動
       this.canvas.addEventListener("mousemove", (e) => {
-        this.updatePointerFromEvent(e);
+        this.handleDragMove(e);
       }, { passive: true });
 
-      this.canvas.addEventListener("click", (e) => {
+      // マウス終了
+      this.canvas.addEventListener("mouseup", (e) => {
         e.preventDefault();
-        this.placePart();
+        this.handleDragEnd(e);
+      });
+
+      // キャンバス外でマウスを離した場合
+      this.canvas.addEventListener("mouseleave", (e) => {
+        if (this.isDragging) {
+          this.handleDragEnd(e);
+        }
       });
     }
 
     window.addEventListener("resize", () => this.onResize());
+  }
+
+  private getPointerPosition(e: MouseEvent | TouchEvent): { x: number; y: number } {
+    const rect = this.canvas.getBoundingClientRect();
+
+    let clientX = 0;
+    let clientY = 0;
+
+    if ("touches" in e && e.touches.length > 0) {
+      clientX = e.touches[0].clientX;
+      clientY = e.touches[0].clientY;
+    } else if ("clientX" in e) {
+      clientX = e.clientX;
+      clientY = e.clientY;
+    }
+
+    const scaleX = this.canvas.width / rect.width;
+    const scaleY = this.canvas.height / rect.height;
+
+    return {
+      x: (clientX - rect.left) * scaleX,
+      y: (clientY - rect.top) * scaleY
+    };
+  }
+
+  private handleDragStart(e: MouseEvent | TouchEvent) {
+    if (this.isRevealing || this.gameComplete) return;
+    if (this.currentIndex >= this.parts.length) return;
+
+    const pos = this.getPointerPosition(e);
+    
+    this.isDragging = true;
+    this.dragStartX = pos.x;
+    this.dragStartY = pos.y;
+
+    // パーツを画面中央に初期配置
+    if (!this.isDragging) {
+      this.currentPartX = this.canvas.width / 2;
+      this.currentPartY = this.canvas.height / 2;
+    }
+  }
+
+  private handleDragMove(e: MouseEvent | TouchEvent) {
+    if (!this.isDragging) return;
+
+    const pos = this.getPointerPosition(e);
+    
+    // ドラッグ開始位置からの差分を計算
+    const deltaX = pos.x - this.dragStartX;
+    const deltaY = pos.y - this.dragStartY;
+
+    // 初回ドラッグ時は中央から開始
+    if (this.currentPartX === 0 && this.currentPartY === 0) {
+      this.currentPartX = this.canvas.width / 2;
+      this.currentPartY = this.canvas.height / 2;
+    }
+
+    // 現在位置を更新
+    this.currentPartX = this.currentPartX + deltaX;
+    this.currentPartY = this.currentPartY + deltaY;
+
+    // 次の差分計算のため、開始位置を更新
+    this.dragStartX = pos.x;
+    this.dragStartY = pos.y;
+  }
+
+  private handleDragEnd(e: MouseEvent | TouchEvent) {
+    if (!this.isDragging) return;
+    
+    this.isDragging = false;
+    this.placePart();
   }
 
   private getOpaqueBounds(img: HTMLImageElement, alphaThreshold = 1): Bounds {
@@ -165,27 +262,6 @@ export class FukuwaraiGame {
     };
   }
 
-  private updatePointerFromEvent(e: MouseEvent | TouchEvent) {
-    const rect = this.canvas.getBoundingClientRect();
-
-    let clientX = 0;
-    let clientY = 0;
-
-    if ("touches" in e && e.touches.length > 0) {
-      clientX = e.touches[0].clientX;
-      clientY = e.touches[0].clientY;
-    } else if ("clientX" in e) {
-      clientX = e.clientX;
-      clientY = e.clientY;
-    }
-
-    const scaleX = this.canvas.width / rect.width;
-    const scaleY = this.canvas.height / rect.height;
-
-    this.mouseX = (clientX - rect.left) * scaleX;
-    this.mouseY = (clientY - rect.top) * scaleY;
-  }
-
   async loadCharacter(character: Character, onProgress?: (loaded: number, total: number) => void) {
     this.selected = character;
 
@@ -219,10 +295,14 @@ export class FukuwaraiGame {
 
     this.canvas.width = window.innerWidth;
     this.canvas.height = window.innerHeight;
-    this.canvas.style.cursor = this.isTouchDevice ? "default" : "none";
+    this.canvas.style.cursor = this.isTouchDevice ? "default" : "grab";
 
     this.calculateImageScale();
     this.updateCurrentPartName();
+
+    // 最初のパーツを画面中央に配置
+    this.currentPartX = this.canvas.width / 2;
+    this.currentPartY = this.canvas.height / 2;
 
     this.fadeFromBlack();
 
@@ -236,7 +316,12 @@ export class FukuwaraiGame {
     this.resetInternalState();
     this.calculateImageScale();
     this.updateCurrentPartName();
-    this.canvas.style.cursor = this.isTouchDevice ? "default" : "none";
+    
+    // 最初のパーツを画面中央に配置
+    this.currentPartX = this.canvas.width / 2;
+    this.currentPartY = this.canvas.height / 2;
+    
+    this.canvas.style.cursor = this.isTouchDevice ? "default" : "grab";
     this.fadeFromBlack();
   }
 
@@ -246,7 +331,7 @@ export class FukuwaraiGame {
     this.scoreDisplayEl.style.display = "none";
     this.retryBtn.style.display = "none";
     this.backBtn.style.display = "none";
-    this.instructionEl.textContent = "クリックでパーツを配置";
+    this.instructionEl.textContent = "ドラッグしてパーツを配置";
     this.currentPartNameEl.textContent = "";
   }
 
@@ -256,14 +341,15 @@ export class FukuwaraiGame {
     this.revealProgress = 0;
     this.isRevealing = false;
     this.gameComplete = false;
+    this.isDragging = false;
+    this.currentPartX = 0;
+    this.currentPartY = 0;
 
     this.retryBtn.style.display = "none";
     this.backBtn.style.display = "none";
     this.scoreDisplayEl.classList.remove("show");
     this.scoreDisplayEl.style.display = "none";
-    this.instructionEl.textContent = this.isTouchDevice 
-      ? "タップでパーツを配置" 
-      : "クリックでパーツを配置";
+    this.instructionEl.textContent = "ドラッグしてパーツを配置";
   }
 
   private fadeFromBlack() {
@@ -299,13 +385,17 @@ export class FukuwaraiGame {
 
     this.placed.push({
       ...part,
-      x: this.mouseX - offsetX,
-      y: this.mouseY - offsetY,
+      x: this.currentPartX - offsetX,
+      y: this.currentPartY - offsetY,
       opacity: 1
     });
 
     this.currentIndex++;
     this.updateCurrentPartName();
+
+    // 次のパーツを画面中央に配置
+    this.currentPartX = this.canvas.width / 2;
+    this.currentPartY = this.canvas.height / 2;
 
     if (this.currentIndex === this.parts.length) {
       this.currentPartNameEl.textContent = "";
@@ -372,6 +462,7 @@ export class FukuwaraiGame {
       }
     }
 
+    // 配置済みパーツの描画
     for (const part of this.placed) {
       const w = part.image.width * this.imageScale;
       const h = part.image.height * this.imageScale;
@@ -396,7 +487,7 @@ export class FukuwaraiGame {
       }
     }
 
-    // 未配置パーツの表示
+    // 現在ドラッグ中または配置待ちのパーツを描画
     if (this.currentIndex < this.parts.length && !this.isRevealing && !this.gameComplete) {
       const cur = this.parts[this.currentIndex];
       const w = cur.image.width * this.imageScale;
@@ -405,16 +496,22 @@ export class FukuwaraiGame {
       const offsetX = (cur.bounds.centerX - cur.image.width / 2) * this.imageScale;
       const offsetY = (cur.bounds.centerY - cur.image.height / 2) * this.imageScale;
 
-      this.ctx.globalAlpha = 0.8;
-      this.ctx.drawImage(cur.image, this.mouseX - w / 2 - offsetX, this.mouseY - h / 2 - offsetY, w, h);
+      // ドラッグ中は不透明度を下げる
+      this.ctx.globalAlpha = this.isDragging ? 0.9 : 0.8;
+      this.ctx.drawImage(
+        cur.image, 
+        this.currentPartX - w / 2 - offsetX, 
+        this.currentPartY - h / 2 - offsetY, 
+        w, 
+        h
+      );
       this.ctx.globalAlpha = 1;
 
-      // タッチデバイスではカーソル点を表示しない
-      if (!this.isTouchDevice) {
-        this.ctx.fillStyle = "rgba(255,255,255,0.5)";
-        this.ctx.beginPath();
-        this.ctx.arc(this.mouseX, this.mouseY, 5, 0, Math.PI * 2);
-        this.ctx.fill();
+      // ドラッグ中はカーソル変更
+      if (this.isDragging && !this.isTouchDevice) {
+        this.canvas.style.cursor = "grabbing";
+      } else if (!this.isTouchDevice) {
+        this.canvas.style.cursor = "grab";
       }
     }
 
@@ -432,10 +529,16 @@ export class FukuwaraiGame {
 
     const sx = this.canvas.width / oldW;
     const sy = this.canvas.height / oldH;
+    
+    // 配置済みパーツの位置をリサイズ
     for (const p of this.placed) {
       p.x *= sx;
       p.y *= sy;
     }
+
+    // 現在のパーツ位置もリサイズ
+    this.currentPartX *= sx;
+    this.currentPartY *= sy;
   }
 
   private calculateImageScale() {
