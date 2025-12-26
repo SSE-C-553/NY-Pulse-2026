@@ -425,11 +425,11 @@ export class FukuwaraiGame {
   private showAllParts(score: number) {
     this.isRevealing = true;
     this.revealProgress = 0;
-    this.instructionEl.textContent = "完成!";
+    this.instructionEl.textContent = "complete!";
     this.canvas.style.cursor = "default";
 
     setTimeout(() => {
-      this.scoreDisplayEl.textContent = `スコア: ${score}点`;
+      this.scoreDisplayEl.textContent = `SCORE: ${score}点`;
       this.scoreDisplayEl.style.display = "block";
       setTimeout(() => this.scoreDisplayEl.classList.add("show"), 50);
 
