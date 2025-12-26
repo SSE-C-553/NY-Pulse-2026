@@ -1,4 +1,4 @@
-// src/game/canvasGame.ts
+// src/game/canvasGame.ts (スマホ・ブラウザ対応版)
 import type { Character, Position01 } from "../data/characters";
 
 type Timing = {
@@ -52,11 +52,14 @@ export class FukuwaraiGame {
 
   private imageScale = 1;
 
-  private revealProgress = 0; // 0..1
+  private revealProgress = 0;
   private isRevealing = false;
   private gameComplete = false;
 
   private loopStarted = false;
+  
+  // タッチ操作用フラグ
+  private isTouchDevice = false;
 
   constructor(opts: {
     canvas: HTMLCanvasElement;
@@ -90,80 +93,92 @@ export class FukuwaraiGame {
       ...opts.timing
     };
 
+    // タッチデバイスの検出
+    this.isTouchDevice = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
+
     this.bindEvents();
   }
 
   private bindEvents() {
-    const updatePos = (e: MouseEvent | TouchEvent) => {
-      this.updatePointerFromEvent(e);
-    };
+    // タッチデバイスとマウスデバイスで分岐
+    if (this.isTouchDevice) {
+      // タッチデバイス用
+      this.canvas.addEventListener("touchmove", (e) => {
+        this.updatePointerFromEvent(e);
+      }, { passive: true });
 
+      this.canvas.addEventListener("touchstart", (e) => {
+        e.preventDefault();
+        this.updatePointerFromEvent(e);
+        this.placePart();
+      }, { passive: false });
+    } else {
+      // マウスデバイス用
+      this.canvas.addEventListener("mousemove", (e) => {
+        this.updatePointerFromEvent(e);
+      }, { passive: true });
 
-    const place = (e: MouseEvent | TouchEvent) => {
-      e.preventDefault();
-      this.placePart();
-    };
-
-    this.canvas.addEventListener("mousemove", updatePos, { passive: true });
-    this.canvas.addEventListener("touchmove", updatePos, { passive: true });
-
-    this.canvas.addEventListener("click", place);
-    this.canvas.addEventListener("touchstart", place, { passive: false });
+      this.canvas.addEventListener("click", (e) => {
+        e.preventDefault();
+        this.placePart();
+      });
+    }
 
     window.addEventListener("resize", () => this.onResize());
   }
+
   private getOpaqueBounds(img: HTMLImageElement, alphaThreshold = 1): Bounds {
-  const w = img.naturalWidth || img.width;
-  const h = img.naturalHeight || img.height;
+    const w = img.naturalWidth || img.width;
+    const h = img.naturalHeight || img.height;
 
-  const off = document.createElement("canvas");
-  off.width = w;
-  off.height = h;
+    const off = document.createElement("canvas");
+    off.width = w;
+    off.height = h;
 
-  const c = off.getContext("2d", { willReadFrequently: true });
-  if (!c) return { centerX: w / 2, centerY: h / 2 };
+    const c = off.getContext("2d", { willReadFrequently: true });
+    if (!c) return { centerX: w / 2, centerY: h / 2 };
 
-  c.clearRect(0, 0, w, h);
-  c.drawImage(img, 0, 0);
+    c.clearRect(0, 0, w, h);
+    c.drawImage(img, 0, 0);
 
-  const { data } = c.getImageData(0, 0, w, h);
+    const { data } = c.getImageData(0, 0, w, h);
 
-  let minX = w, minY = h, maxX = -1, maxY = -1;
+    let minX = w, minY = h, maxX = -1, maxY = -1;
 
-  for (let y = 0; y < h; y++) {
-    for (let x = 0; x < w; x++) {
-      const a = data[(y * w + x) * 4 + 3];
-      if (a >= alphaThreshold) {
-        if (x < minX) minX = x;
-        if (x > maxX) maxX = x;
-        if (y < minY) minY = y;
-        if (y > maxY) maxY = y;
+    for (let y = 0; y < h; y++) {
+      for (let x = 0; x < w; x++) {
+        const a = data[(y * w + x) * 4 + 3];
+        if (a >= alphaThreshold) {
+          if (x < minX) minX = x;
+          if (x > maxX) maxX = x;
+          if (y < minY) minY = y;
+          if (y > maxY) maxY = y;
+        }
       }
     }
+
+    if (maxX < 0 || maxY < 0) return { centerX: w / 2, centerY: h / 2 };
+
+    return {
+      centerX: (minX + maxX) / 2,
+      centerY: (minY + maxY) / 2
+    };
   }
-
-  // 全透明だった場合
-  if (maxX < 0 || maxY < 0) return { centerX: w / 2, centerY: h / 2 };
-
-  return {
-    centerX: (minX + maxX) / 2,
-    centerY: (minY + maxY) / 2
-  };
-}
-
 
   private updatePointerFromEvent(e: MouseEvent | TouchEvent) {
     const rect = this.canvas.getBoundingClientRect();
 
-    const clientX =
-      "touches" in e && e.touches.length ? e.touches[0].clientX :
-      "clientX" in e ? e.clientX : 0;
+    let clientX = 0;
+    let clientY = 0;
 
-    const clientY =
-      "touches" in e && e.touches.length ? e.touches[0].clientY :
-      "clientY" in e ? e.clientY : 0;
+    if ("touches" in e && e.touches.length > 0) {
+      clientX = e.touches[0].clientX;
+      clientY = e.touches[0].clientY;
+    } else if ("clientX" in e) {
+      clientX = e.clientX;
+      clientY = e.clientY;
+    }
 
-    // CSS上のcanvasサイズ → canvas内部座標へ変換
     const scaleX = this.canvas.width / rect.width;
     const scaleY = this.canvas.height / rect.height;
 
@@ -171,14 +186,12 @@ export class FukuwaraiGame {
     this.mouseY = (clientY - rect.top) * scaleY;
   }
 
-
   async loadCharacter(character: Character, onProgress?: (loaded: number, total: number) => void) {
     this.selected = character;
 
-    const total = character.parts.length + 1; // true + parts
+    const total = character.parts.length + 1;
     let loaded = 0;
 
-    // true画像はUI側で表示する想定だが、ロード確認に使う
     await this.loadImage(character.trueUrl).then(() => {
       loaded++;
       onProgress?.(loaded, total);
@@ -201,13 +214,12 @@ export class FukuwaraiGame {
     this.correctPositions = character.correctPositions.slice();
   }
 
-  // タイトル→ゲーム開始（タイトル画面の表示/非表示はUI側で行う）
   startPlay() {
     this.resetInternalState();
 
     this.canvas.width = window.innerWidth;
     this.canvas.height = window.innerHeight;
-    this.canvas.style.cursor = "none";
+    this.canvas.style.cursor = this.isTouchDevice ? "default" : "none";
 
     this.calculateImageScale();
     this.updateCurrentPartName();
@@ -224,11 +236,10 @@ export class FukuwaraiGame {
     this.resetInternalState();
     this.calculateImageScale();
     this.updateCurrentPartName();
-    this.canvas.style.cursor = "none";
+    this.canvas.style.cursor = this.isTouchDevice ? "default" : "none";
     this.fadeFromBlack();
   }
 
-  // 外から「キャラ選択に戻る」時に呼ぶ
   stopAndResetUI() {
     this.resetInternalState();
     this.scoreDisplayEl.classList.remove("show");
@@ -250,17 +261,17 @@ export class FukuwaraiGame {
     this.backBtn.style.display = "none";
     this.scoreDisplayEl.classList.remove("show");
     this.scoreDisplayEl.style.display = "none";
-    this.instructionEl.textContent = "クリックでパーツを配置";
+    this.instructionEl.textContent = this.isTouchDevice 
+      ? "タップでパーツを配置" 
+      : "クリックでパーツを配置";
   }
 
   private fadeFromBlack() {
-    // まず黒を瞬間表示（0→1の変なフェードを起こさない）
     this.fadeOverlay.classList.add("no-trans");
     this.fadeOverlay.classList.remove("transparent");
     void this.fadeOverlay.offsetHeight;
     this.fadeOverlay.classList.remove("no-trans");
 
-    // 次フレームで明るく（1→0）だけフェード
     requestAnimationFrame(() => {
       this.fadeOverlay.classList.add("transparent");
     });
@@ -279,7 +290,6 @@ export class FukuwaraiGame {
   private placePart() {
     if (!this.selected) return;
     if (this.isRevealing || this.gameComplete) return;
-
     if (this.currentIndex >= this.parts.length) return;
 
     const part = this.parts[this.currentIndex];
@@ -332,7 +342,7 @@ export class FukuwaraiGame {
   private showAllParts(score: number) {
     this.isRevealing = true;
     this.revealProgress = 0;
-    this.instructionEl.textContent = "完成！";
+    this.instructionEl.textContent = "完成!";
     this.canvas.style.cursor = "default";
 
     setTimeout(() => {
@@ -348,7 +358,6 @@ export class FukuwaraiGame {
   }
 
   private gameLoop() {
-    // 初期化
     this.ctx.setTransform(1, 0, 0, 1, 0, 0);
     this.ctx.globalAlpha = 1;
     this.ctx.globalCompositeOperation = "source-over";
@@ -363,19 +372,16 @@ export class FukuwaraiGame {
       }
     }
 
-    // 置いたパーツ描画
     for (const part of this.placed) {
       const w = part.image.width * this.imageScale;
       const h = part.image.height * this.imageScale;
 
-      // 置いた直後のフェードアウト（完成演出中はしない）
       if (!this.isRevealing && !this.gameComplete && part.opacity > 0) {
         part.opacity -= (1000 / 60) / this.timing.PART_FADE_OUT;
         if (part.opacity < 0) part.opacity = 0;
       }
 
       if (this.isRevealing || this.gameComplete) {
-        // 黒影→徐々に表示
         this.ctx.save();
         this.ctx.drawImage(part.image, part.x - w / 2, part.y - h / 2, w, h);
         this.ctx.globalCompositeOperation = "source-atop";
@@ -390,7 +396,7 @@ export class FukuwaraiGame {
       }
     }
 
-    // 未配置パーツのマウス追従表示
+    // 未配置パーツの表示
     if (this.currentIndex < this.parts.length && !this.isRevealing && !this.gameComplete) {
       const cur = this.parts[this.currentIndex];
       const w = cur.image.width * this.imageScale;
@@ -403,11 +409,13 @@ export class FukuwaraiGame {
       this.ctx.drawImage(cur.image, this.mouseX - w / 2 - offsetX, this.mouseY - h / 2 - offsetY, w, h);
       this.ctx.globalAlpha = 1;
 
-      // カーソルの白点
-      this.ctx.fillStyle = "rgba(255,255,255,0.5)";
-      this.ctx.beginPath();
-      this.ctx.arc(this.mouseX, this.mouseY, 5, 0, Math.PI * 2);
-      this.ctx.fill();
+      // タッチデバイスではカーソル点を表示しない
+      if (!this.isTouchDevice) {
+        this.ctx.fillStyle = "rgba(255,255,255,0.5)";
+        this.ctx.beginPath();
+        this.ctx.arc(this.mouseX, this.mouseY, 5, 0, Math.PI * 2);
+        this.ctx.fill();
+      }
     }
 
     requestAnimationFrame(() => this.gameLoop());
@@ -445,11 +453,5 @@ export class FukuwaraiGame {
       img.onerror = () => reject(new Error(`Failed to load: ${url}`));
       img.src = url;
     });
-  }
-
-  // 元コードのような厳密な透過境界探索は重いので、「中心=画像中心」版（高速・安定）
-  // もし透過境界に合わせたい場合は後で差し替え可能。
-  private getImageBoundsFast(img: HTMLImageElement): Bounds {
-    return { centerX: img.width / 2, centerY: img.height / 2 };
   }
 }
