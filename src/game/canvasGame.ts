@@ -415,7 +415,7 @@ export class FukuwaraiGame {
       const dy = part.y - correctY;
       const dist = Math.sqrt(dx * dx + dy * dy);
 
-      const partScore = Math.max(0, 100 - (dist / maxDistance) * 200);
+      const partScore = Math.max(0, 100 - (dist / maxDistance) * 400);
       totalScore += partScore;
     }
 
