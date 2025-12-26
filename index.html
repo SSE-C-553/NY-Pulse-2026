@@ -1,11 +1,50 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="ja">
-<head>
-  <meta charset="UTF-8">
-  <title>GitHub Pages</title>
-</head>
-<body>
-  <h1>Hello GitHub Pages</h1>
-  <p>公開成功です。</p>
-</body>
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>福笑い</title>
+  </head>
+  <body>
+    <div id="app">
+      <div id="selectScreen" class="screen">
+        <h1>福笑い</h1>
+        <h2>キャラクターを選択</h2>
+
+        <div id="characterPreview">
+          <button id="prevBtn" class="nav-btn" type="button">‹</button>
+          <img id="previewImage" alt="キャラクター" />
+          <button id="nextBtn" class="nav-btn" type="button">›</button>
+        </div>
+
+        <div id="characterName"></div>
+        <button id="selectCharacterBtn" type="button">決定</button>
+        <div id="loadingText"></div>
+      </div>
+
+      <div id="titleScreen" class="screen hidden">
+        <h1>福笑い</h1>
+        <div id="characterTitle"></div>
+        <div id="resultImage">
+          <img id="trueImage" alt="正解の顔" />
+        </div>
+        <div id="loadingText2"></div>
+      </div>
+
+      <div id="gameScreen" class="screen hidden">
+        <div id="fadeOverlay" class="fadeOverlay"></div>
+
+        <canvas id="gameCanvas"></canvas>
+
+        <div id="currentPartName"></div>
+        <div id="instruction">クリックでパーツを配置</div>
+
+        <div id="scoreDisplay"></div>
+        <button id="retryBtn" type="button">リトライ</button>
+        <button id="backBtn" type="button">キャラクター選択</button>
+      </div>
+    </div>
+
+    <script type="module" src="/src/main.ts"></script>
+  </body>
 </html>
