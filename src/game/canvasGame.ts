@@ -52,7 +52,6 @@ export class FukuwaraiGame {
   private dragStartY = 0;
   private currentPartX = 0; // 現在ドラッグ中のパーツ位置
   private currentPartY = 0;
-  private hasMovedPart = false; // パーツが一度でも移動したか
 
   private imageScale = 1;
 
@@ -187,8 +186,8 @@ export class FukuwaraiGame {
     this.dragStartX = pos.x;
     this.dragStartY = pos.y;
 
-    // パーツが一度も移動していない場合のみ、画面中央に初期配置
-    if (!this.hasMovedPart) {
+    // パーツ位置が未設定の場合のみ、画面中央に初期配置
+    if (this.currentPartX === 0 && this.currentPartY === 0) {
       this.currentPartX = this.canvas.width / 2;
       this.currentPartY = this.canvas.height / 2;
     }
@@ -298,7 +297,6 @@ export class FukuwaraiGame {
     // 最初のパーツを画面中央に配置
     this.currentPartX = this.canvas.width / 2;
     this.currentPartY = this.canvas.height / 2;
-    this.hasMovedPart = false;
 
     this.fadeFromBlack();
 
@@ -316,7 +314,6 @@ export class FukuwaraiGame {
     // 最初のパーツを画面中央に配置
     this.currentPartX = this.canvas.width / 2;
     this.currentPartY = this.canvas.height / 2;
-    this.hasMovedPart = false;
     
     this.canvas.style.cursor = this.isTouchDevice ? "default" : "grab";
     this.fadeFromBlack();
@@ -341,7 +338,6 @@ export class FukuwaraiGame {
     this.isDragging = false;
     this.currentPartX = 0;
     this.currentPartY = 0;
-    this.hasMovedPart = false;
 
     this.retryBtn.style.display = "none";
     this.backBtn.style.display = "none";
@@ -393,7 +389,6 @@ export class FukuwaraiGame {
 
     // 次のパーツは前のパーツを置いた位置から出現（位置は維持）
     // this.currentPartX と this.currentPartY はそのまま
-    this.hasMovedPart = false; // 次のパーツ用にリセット
 
     if (this.currentIndex === this.parts.length) {
       this.currentPartNameEl.textContent = "";
