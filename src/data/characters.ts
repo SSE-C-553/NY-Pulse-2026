@@ -22,6 +22,11 @@ import c1_le from "../assets/character1/left_eye.png";
 import c1_nose from "../assets/character1/nose.png";
 import c1_mouth from "../assets/character1/mouth.png";
 import c1_back_hair from "../assets/character1/back_hair.png";
+import c1_left_ear from "../assets/character1/left_ear.png";
+import c1_right_ear from "../assets/character1/right_ear.png";
+import c1_barcode from "../assets/character1/barcode.png";
+import c1_front_hair from "../assets/character1/front_hair.png";
+import c1_white_hair from "../assets/character1/white_hair.png";
 
 import c2_preview from "../assets/character2/preview.png";
 import c2_true from "../assets/character2/true.png";
@@ -30,25 +35,31 @@ import c2_reb from "../assets/character2/right_eyebrow.png";
 import c2_leb from "../assets/character2/left_eyebrow.png";
 import c2_re from "../assets/character2/right_eye.png";
 import c2_le from "../assets/character2/left_eye.png";
-import c2_nose from "../assets/character1/nose.png";
-import c2_mouth from "../assets/character1/mouth.png";
+import c2_nose from "../assets/character2/nose.png";
+import c2_mouth from "../assets/character2/mouth.png";
+
 
 export const characters: Character[] = [
   {
     id: "character1",
-    name: "キャラクター1",
-    title: "ふくわらい その1",
+    name: "ぱるすちゃん",
+    title: "　",
     previewUrl: c1_preview,
     trueUrl: c1_true,
     parts: [
       { fileName: "back_hair.png", url: c1_back_hair },
+      { fileName: "left_ear.png", url: c1_left_ear },
+      { fileName: "right_ear.png", url: c1_right_ear },
       { fileName: "face.png", url: c1_face },
       { fileName: "right_eyebrow.png", url: c1_reb },
       { fileName: "left_eyebrow.png", url: c1_leb },
       { fileName: "right_eye.png", url: c1_re },
       { fileName: "left_eye.png", url: c1_le },
+      { fileName: "barcode.png", url: c1_barcode },
       { fileName: "nose.png", url: c1_nose },
-      { fileName: "mouth.png", url: c1_mouth }
+      { fileName: "mouth.png", url: c1_mouth },
+      { fileName: "front_hair.png", url: c1_front_hair },
+      { fileName: "white_hair.png", url: c1_white_hair }
     ],
     // 仮の例。あなたの positions.json があるなら、同じ値をここに転記。
     correctPositions: [

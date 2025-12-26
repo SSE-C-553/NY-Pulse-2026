@@ -52,6 +52,7 @@ export class FukuwaraiGame {
   private dragStartY = 0;
   private currentPartX = 0; // 現在ドラッグ中のパーツ位置
   private currentPartY = 0;
+  private hasMovedPart = false; // パーツが一度でも移動したか
 
   private imageScale = 1;
 
@@ -186,8 +187,8 @@ export class FukuwaraiGame {
     this.dragStartX = pos.x;
     this.dragStartY = pos.y;
 
-    // パーツを画面中央に初期配置
-    if (!this.isDragging) {
+    // パーツが一度も移動していない場合のみ、画面中央に初期配置
+    if (!this.hasMovedPart) {
       this.currentPartX = this.canvas.width / 2;
       this.currentPartY = this.canvas.height / 2;
     }
@@ -202,15 +203,9 @@ export class FukuwaraiGame {
     const deltaX = pos.x - this.dragStartX;
     const deltaY = pos.y - this.dragStartY;
 
-    // 初回ドラッグ時は中央から開始
-    if (this.currentPartX === 0 && this.currentPartY === 0) {
-      this.currentPartX = this.canvas.width / 2;
-      this.currentPartY = this.canvas.height / 2;
-    }
-
-    // 現在位置を更新
-    this.currentPartX = this.currentPartX + deltaX;
-    this.currentPartY = this.currentPartY + deltaY;
+    // 現在位置を更新（相対移動）
+    this.currentPartX += deltaX;
+    this.currentPartY += deltaY;
 
     // 次の差分計算のため、開始位置を更新
     this.dragStartX = pos.x;
@@ -303,6 +298,7 @@ export class FukuwaraiGame {
     // 最初のパーツを画面中央に配置
     this.currentPartX = this.canvas.width / 2;
     this.currentPartY = this.canvas.height / 2;
+    this.hasMovedPart = false;
 
     this.fadeFromBlack();
 
@@ -320,6 +316,7 @@ export class FukuwaraiGame {
     // 最初のパーツを画面中央に配置
     this.currentPartX = this.canvas.width / 2;
     this.currentPartY = this.canvas.height / 2;
+    this.hasMovedPart = false;
     
     this.canvas.style.cursor = this.isTouchDevice ? "default" : "grab";
     this.fadeFromBlack();
@@ -344,6 +341,7 @@ export class FukuwaraiGame {
     this.isDragging = false;
     this.currentPartX = 0;
     this.currentPartY = 0;
+    this.hasMovedPart = false;
 
     this.retryBtn.style.display = "none";
     this.backBtn.style.display = "none";
@@ -396,6 +394,7 @@ export class FukuwaraiGame {
     // 次のパーツを画面中央に配置
     this.currentPartX = this.canvas.width / 2;
     this.currentPartY = this.canvas.height / 2;
+    this.hasMovedPart = false; // 次のパーツ用にリセット
 
     if (this.currentIndex === this.parts.length) {
       this.currentPartNameEl.textContent = "";
