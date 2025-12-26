@@ -391,9 +391,8 @@ export class FukuwaraiGame {
     this.currentIndex++;
     this.updateCurrentPartName();
 
-    // 次のパーツを画面中央に配置
-    this.currentPartX = this.canvas.width / 2;
-    this.currentPartY = this.canvas.height / 2;
+    // 次のパーツは前のパーツを置いた位置から出現（位置は維持）
+    // this.currentPartX と this.currentPartY はそのまま
     this.hasMovedPart = false; // 次のパーツ用にリセット
 
     if (this.currentIndex === this.parts.length) {

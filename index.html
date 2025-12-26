@@ -33,6 +33,51 @@
         min-width: 44px;
         touch-action: manipulation;
       }
+
+      /* スマホ対応: セーフエリアを考慮 */
+      #gameScreen {
+        padding-top: env(safe-area-inset-top);
+        padding-bottom: env(safe-area-inset-bottom);
+        padding-left: env(safe-area-inset-left);
+        padding-right: env(safe-area-inset-right);
+      }
+
+      /* 完成後のボタンをセーフエリア上に配置 */
+      #retryBtn, #backBtn {
+        margin-bottom: max(20px, env(safe-area-inset-bottom));
+      }
+
+      /* 左上の文字（currentPartName）と真ん中上の文字（instruction）の重なり防止 */
+      #currentPartName {
+        position: absolute;
+        top: max(20px, calc(env(safe-area-inset-top) + 10px));
+        left: max(20px, calc(env(safe-area-inset-left) + 10px));
+        z-index: 10;
+      }
+
+      #instruction {
+        position: absolute;
+        top: max(20px, calc(env(safe-area-inset-top) + 10px));
+        left: 50%;
+        transform: translateX(-50%);
+        z-index: 10;
+        /* スマホで左上の文字と被らないように調整 */
+        padding-left: 10px;
+        padding-right: 10px;
+        white-space: nowrap;
+      }
+
+      /* スマホ画面が小さい場合、instructionを下に移動 */
+      @media (max-width: 480px) {
+        #instruction {
+          top: max(60px, calc(env(safe-area-inset-top) + 50px));
+        }
+      }
+
+      /* 完成後のボタン位置調整 */
+      #scoreDisplay {
+        margin-bottom: max(100px, calc(env(safe-area-inset-bottom) + 100px));
+      }
     </style>
   </head>
   <body>
